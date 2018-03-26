@@ -1,12 +1,15 @@
 import random
+import math
 # 快速积取模 a*b%n
-def fastMulMod(a, b, n):
-    ans = 0;
-    while (b):
-        if (b & 1):
-            ans = (ans + a) % n;
-            a = (a + a) % n;
-            b >>= 1;
+def fastMulMod(a, b, c):
+    ans=0
+    a=a%c
+    b=b%c
+    while(b>0):
+        if(b&1):
+            ans=(ans+a)%c
+        a=(a+a)%c
+        b>>=1;
     return ans;
 # 快速幂取模 a^b % c
 def fastExpMod(a, b, c):
@@ -29,21 +32,22 @@ def miller_rabin(n):
         return 0;
     #for (t=0, u=n-1;!(u & 1);t++, u >>= 1) # n-1=u * 2 ^ t
     t = 0
+    u = n - 1
     while(1):
-        u = n - 1
-        u >>= 1
+        u = u >> 1
         t = t+1
-        if(not(u & 1)):
+        if((u == 1)):
             break
+    u = n-1
     for i in range(s):
-        a = random.rand()%(n-1)+1
+        a = random.randint(1,n-1)
         x = fastExpMod(a, u, n)
         for j in range(t):
             y = fastMulMod(x, x, n)
             if (y == 1 and x != 1 and x != n - 1):
                 return 0
             x = y
-        if (x != 1):
+        if x != 1:
             return 0
     return 1
 
@@ -89,24 +93,31 @@ def encryptionRSA(n,e,cleartext):
     ct = cleartext.upper()#将其转化为大写
     #ciphertext =[['' for i in range(2)] for i in range(100)]
     ctlen = len(cleartext)
-    ciphertext = ['' for i in range(int(ctlen/2))]
+    ciphertext = ['' for i in range(math.ceil(ctlen/2))]
     num = 0
     tempi = 0
     while(1):
         #针对字符串中每两个字符进行加密
         tempct1 =ord( ct[num] )#获取第一个字符
-        tempct2 =ord( ct[num+1] )#获取第二个字符
+        if( num + 1 >= ctlen ):
+            tempct2 = ord('@')#如果为奇数则在最后补 字符 @
+            tempct3 = tempct2 + tempct1 * 100  # 转化成数字
+            tempciphertext = fastExpMod(tempct3, e, n)
+            # tempciphertext = fastExpMod(3, 5, 6)
+            ciphertext[tempi] = tempciphertext
+            tempi = tempi + 1
+            break
+        else:
+            tempct2 =ord( ct[num+1] )#获取第二个字符
         tempct3 = tempct2 + tempct1*100#转化成数字
-        print(tempct3,e,n)
         tempciphertext = fastExpMod(tempct3,e,n)
         #tempciphertext = fastExpMod(3, 5, 6)
-        print(tempciphertext)
         ciphertext[tempi] = tempciphertext
         tempi = tempi + 1
         num = num + 2
         if(num >= ctlen):
             break
-    print( ciphertext[0:int(ctlen/2)])
+    #print( ciphertext[0:int(ctlen/2)])
     return ciphertext
 #解密 需 d n
 def decryptionRSA(n,d,ciphertext):
@@ -117,16 +128,17 @@ def decryptionRSA(n,d,ciphertext):
         tempclt12 = tempcleartext // 100
         tempclt13 = tempcleartext - (tempcleartext // 100)*100
         cleartext = cleartext + chr(tempclt12)#解密后的第一个字符
-        cleartext = cleartext + chr(tempclt13)#解密后的第二个字符
+        if(chr(tempclt13)!='@'):
+            cleartext = cleartext + chr(tempclt13)#解密后的第二个字符
     return cleartext
 def calculate_key():
+    p = random.randint(256, 65535)  # 2^8< p < 2^16
+    q = random.randint(256, 65535)  # 2^8< q < 2^16
     while(1):
-        p = random.randint(256, 65535) # 2^8< p < 2^16
-        q = random.randint(256, 65535) # 2^8< q < 2^16
-        print(p,q)
-        print(miller_rabin(p))
-        if ( (p != q) and(miller_rabin(p) == 1 )and (miller_rabin(p) == 1) ):
+        if ( (p != q) and(miller_rabin(int(p)) == 1 )and (miller_rabin(int(q)) == 1) ):
             break
+        p = p + 1
+        q = q + 1
     n = p * q
     fai = (p-1)*(q-1)
     #求与fai互质的e
@@ -145,5 +157,5 @@ def main():
     finallcleartext = decryptionRSA(n, d, ciphertext)
     print("明文为" + finallcleartext)
 if __name__ == '__main__':
-    print(miller_rabin(3))
-    #main()
+    main()
+
